@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+    .node circle {
+        fill: #999;
+    }
+
+    .node text {
+        font: 10px sans-serif;
+    }
+
+    .node--internal circle {
+        fill: #555;
+    }
+
+    .node--internal text {
+        text-shadow: 0 1px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff;
+    }
+
+    .link {
+        fill: none;
+        stroke: #555;
+        stroke-opacity: 0.4;
+        stroke-width: 1.5px;
+    }
+
+    form {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        position: absolute;
+        left: 10px;
+        top: 10px;
+    }
+
+    label {
+        display: block;
+    }
+
+</style>
+<body>
+<form>
+    <label><input type="radio" name="mode" value="cluster" checked> Dendrogram</label>
+    <label><input type="radio" name="mode" value="tree"> Tree</label>
+</form>
+<svg width="600" height="500"></svg>
+<script src="js/d3.v4.js"></script>
+<script>
+
+    var svg = d3.select("svg"),
+            width = +svg.attr("width"),
+            height = +svg.attr("height"),
+            g = svg.append("g").attr("transform", "translate(100,0)");
+
+    var tree = d3.tree()
+            .size([400, 400]);
+
+    var cluster = d3.cluster()
+            // 长度
+            .size([300, 300]);
+
+//    var stratify = d3.stratify()
+//            .parentId(function(d) { return d.id.substring(0, d.id.lastIndexOf(".")); });
+
+    d3.json("data/data.json", function(error, data) {
+        if (error) throw error;
+
+//        var root = stratify(data)
+//                .sort(function(a, b) { return (a.height - b.height) || a.id.localeCompare(b.id); });
+var root=d3.hierarchy(data);
+        cluster(root);
+
+        var link = g.selectAll(".link")
+                .data(root.descendants().slice(1))
+                .enter().append("path")
+                .attr("class", "link")
+                .attr("d", diagonal);
+
+        var node = g.selectAll(".node")
+                .data(root.descendants())
+                .enter().append("g")
+                .attr("class", function(d) { return "node" + (d.children ? " node--internal" : " node--leaf"); })
+                .attr("transform", function(d) {
+                    console.log( d.y+":"+ d.x);
+                    return "translate(" + d.y + "," + d.x + ")"; });
+
+        node.append("circle")
+                .attr("r", 5);
+
+        node.append("text")
+                .attr("dy", 3)
+                .attr("x", function(d) { return d.children ? -8 : 8; })
+                .style("text-anchor", function(d) { return d.children ? "end" : "start"; })
+                .text(function(d) {
+                    console.log(d.data.name);
+                    return d.data.name; });
+
+        d3.selectAll("input")
+                .on("change", changed);
+
+        var timeout = setTimeout(function() {
+            d3.select("input[value=\"tree\"]")
+                    .property("checked", true)
+                    .dispatch("change");
+        }, 1000);
+
+        function changed() {
+            timeout = clearTimeout(timeout);
+            (this.value === "tree" ? tree : cluster)(root);
+            var t = d3.transition().duration(750);
+            node.transition(t).attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
+            link.transition(t).attr("d", diagonal);
+        }
+    });
+//
+    function diagonal(d) {
+        return "M" + d.y + "," + d.x
+                + "C" + (d.parent.y + 40) + "," + d.x
+                + " " + (d.parent.y + 40) + "," + d.parent.x
+                + " " + d.parent.y + "," + d.parent.x;
+    }
+
+</script>
+
+</body>
+</html>
