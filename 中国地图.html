@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>中国地图geojson</title>
+
+</head>
+<script src="js/d3.v4.js"></script>
+<body>
+<script>
+    var width = 1500;
+    var height = 1500;
+    var svg = d3.select("body")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+    //投影
+    var projextion = d3.geoMercator()
+            .center([107, 31]) //设定地图的中心位置，[107,31] 指的是经度和纬度。
+            .scale(1000)//设定放大的比例。
+            .translate([width / 2, height / 2])
+            .precision(0.2);
+
+    ;//设定平移。
+    // 地图生成器
+    //projection() 是设定生成器的投影函数，把上面定义的投影传入即可。以后，当使用此生成器计算路径时，会自己加入投影的影响。
+    var path = d3.geoPath().projection(projextion);
+    var color = d3.scaleOrdinal(d3.schemeCategory20b);
+
+    //向服务器请求文件并绘制地图
+    d3.json("data/ChinaGeo.json", function (error, root) {
+        if (error)
+            return console.error(error);
+//        console.log(root.features[0].properties.name);
+        svg.selectAll("path")
+                .data(root.features)
+                .enter()
+                .append("path")
+                .attr("stroke", "#000")
+                .attr("stroke-width", 1)
+                .attr("fill", function (d, i) {
+                    return color(i);
+                })
+                .attr("d", path) // 使用地理路径生成器
+                .on("mouseover", function (d, i) {
+                    d3.select(this)
+                            .attr("fill", "yellow");
+                }).on("mouseout", function (d, i) {
+            d3.select(this).attr("fill", color(i));
+        })
+        ;
+        svg.selectAll("text")
+                .data(root.features)
+                .enter()
+                .append("text")
+                //设置各个文本（省份名称）显示的文字
+                .attr("transform",function(d,i)
+                {
+                    if(d.properties.id =="20") //河北
+                    {
+                        return "translate("+(path.centroid(d)[0]-20)+","+ (path.centroid(d)[1]+20)+")";
+                    }
+                    return "translate("+(path.centroid(d)[0]-10)+","+ path.centroid(d)[1]+")";
+                })
+
+                //显示省名
+                .text(function(d)
+                {
+                    return d.properties.name;
+                })
+                .attr("font-size",10);
+
+
+    });
+
+</script>
+</body>
+</html>
