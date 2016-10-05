@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="js/d3.v4.js"></script>
+
+</head>
+<body>
+
+<script>
+    var width = 960;
+    var height = 500;
+    var svg = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .attr("sx", 200).attr("sy", 300);
+    var nodes = [{name: "桂林"}, {name: "广州"},
+        {name: "厦门市"}, {name: "杭州"},
+        {name: "上海"}, {name: "青岛"},
+        {name: "天津"}];
+
+    var edges = [{source: 0, target: 1}, {source: 0, target: 2},
+        {source: 0, target: 3}, {source: 1, target: 4},
+        {source: 1, target: 5}, {source: 1, target: 6}];
+    var force = d3.forceSimulation(nodes).force("charge", d3.forceManyBody())
+            .force("link", d3.forceLink(edges).distance(150).strength(1))
+            .force("x", d3.forceX())
+            .force("y", d3.forceY())
+            // 这个属性使得力图可以在你想要的位置，如果没有这个的话图形就会聚集在左上角
+            .force("center", d3.forceCenter(width / 2, height / 2));
+
+    ;
+    console.log(d3.forceX());
+    //            .links(edges)
+    //            .size(width, height)// 指定作用域范围
+    //            .linkDistance(100)// 指定连线的长度
+    //            .charge([-400]);// 指定力之间的作用力
+    //  force.start();
+    var svg_edges = svg.selectAll("line")
+            .data(edges)
+            .enter()
+            .append("line")
+            .style("stroke", "#ccc")
+            .style("stroke-width", 1);
+    var color = d3.scaleOrdinal(d3.schemeCategory10);
+
+    var svg_node = svg.selectAll("circle")
+            .data(nodes)
+            .enter()
+            .append("circle")
+            .attr("r", 20)
+            .style("fill", function (d, i) {
+                return color(i);
+            }).call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended));
+    //.call(force.drag);// 使得节点可以拖动
+    // 给节点添加文字描述
+    var svg_texts = svg.selectAll("text")
+            .data(nodes)
+            .enter().append("text")
+            .style("fill", "black")
+            // 这边是文字的位置，好像是以圆心为坐标原点的
+            .attr("dx", function (d) {
+
+                return -10;
+            })
+            .attr("dy", 5)
+            .style("font-size",function (d) {
+                var length = d.name.length;
+                return 40/(length+1);
+
+            })
+            .text(function (d) {
+                return d.name;
+
+            });
+    // 由于力导向图是不断运动的，每一时刻都在发生更新，因此，必须不断更新节点和连线的位置。
+    //   更新连线
+    force.on("tick", function () {
+        svg_edges.attr("x1", function (d) {
+            return d.source.x;
+        }).attr("y1", function (d) {
+            return d.source.y;
+        }).attr("x2", function (d) {
+            return d.target.x;
+        }).attr("y2", function (d) {
+            return d.target.y;
+        });
+        // 更新节点
+        svg_node.attr("cx", function (d) {
+            return d.x;
+        }).attr("cy", function (d) {
+            return d.y;
+        });
+        // 更新文字
+        svg_texts.attr("x", function (d) {
+            return d.x;
+        }).attr("y", function (d) {
+            return d.y;
+
+        })
+    });
+    function dragstarted(d) {
+        if (!d3.event.active) force.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+    }
+
+    function dragged(d) {
+        d.fx = d3.event.x;
+        d.fy = d3.event.y;
+    }
+
+    function dragended(d) {
+        if (!d3.event.active) force.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+    }
+</script>
+
+
+</body>
+</html>
